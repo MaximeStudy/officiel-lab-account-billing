@@ -5,19 +5,20 @@ import java.util.List;
 public class AccountBillingService {
 
 	public void cancelInvoiceAndRedistributeFunds(BillId id) {
-		Bill billToCancel = BillDAO.getInstance().findBill(id);
+		Bill billToCancel = getBillById(id);
 		if (!(billToCancel == null)) {
 			ClientId clientId = billToCancel.getClientId();
 
-			if (!billToCancel.isCancelled())
+			if (!billToCancel.isCancelled()) {
 				billToCancel.cancel();
+			}
 			
-			BillDAO.getInstance().persist(billToCancel);
+			persistBill(billToCancel);
 
 			List<Allocation> allocationsToMove = billToCancel.getAllocations();
 
 			for (Allocation allocationToMove : allocationsToMove) {
-				List<Bill> billsOfClient = BillDAO.getInstance().findAllByClient(clientId);
+				List<Bill> billsOfClient = getBillsByClient(clientId);
 				int amountToMove = allocationToMove.getAmount();
 
 				for (Bill billOfClient : billsOfClient) {
@@ -34,7 +35,7 @@ public class AccountBillingService {
 
 						billOfClient.addAllocation(newRedistributedAllocation);
 
-						BillDAO.getInstance().persist(billOfClient);
+						persistBill(billOfClient);
 					}
 
 					if (amountToMove == 0) {
@@ -45,5 +46,17 @@ public class AccountBillingService {
 		} else {
 			throw new BillNotFoundException();
 		}
+	}
+
+	protected List<Bill> getBillsByClient(ClientId clientId) {
+		return BillDAO.getInstance().findAllByClient(clientId);
+	}
+
+	protected void persistBill(Bill bill) {
+		BillDAO.getInstance().persist(bill);
+	}
+
+	protected Bill getBillById(BillId id) {
+		return BillDAO.getInstance().findBill(id);
 	}
 }
