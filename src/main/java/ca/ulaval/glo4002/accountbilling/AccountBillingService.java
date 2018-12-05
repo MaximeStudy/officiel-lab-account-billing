@@ -9,10 +9,8 @@ public class AccountBillingService {
 		if (!(billToCancel == null)) {
 			ClientId clientId = billToCancel.getClientId();
 
-			if (!billToCancel.isCancelled()) {
-				billToCancel.cancel();
-			}
-			
+			billToCancel.cancelBillIfNotCancelled();
+
 			persistBill(billToCancel);
 
 			List<Allocation> allocationsToMove = billToCancel.getAllocations();
@@ -22,8 +20,10 @@ public class AccountBillingService {
 				int amountToRedistribute = allocationToMove.getAmount();
 
 				for (Bill billCandidate : billsOfClient) {
-					amountToRedistribute = redistributeAmount(billToCancel, amountToRedistribute, billCandidate);
-					if (amountToRedistribute == 0) {
+					amountToRedistribute = billCandidate.redistributeAllocation(billToCancel, amountToRedistribute);
+					persistBill(billCandidate);
+
+					if (allMoneyIsRedistributed(amountToRedistribute)) {
 						break;
 					}
 				}
@@ -33,13 +33,8 @@ public class AccountBillingService {
 		}
 	}
 
-	private int redistributeAmount(Bill billToCancel, int amountToRedistribute, Bill billCandidate) {
-		if (billToCancel != billCandidate) {
-			amountToRedistribute = billCandidate.addRedistributeAllocation(amountToRedistribute);
-
-			persistBill(billCandidate);
-		}
-		return amountToRedistribute;
+	private boolean allMoneyIsRedistributed(int amountToRedistribute) {
+		return amountToRedistribute == 0;
 	}
 
 	protected List<Bill> getBillsByClient(ClientId clientId) {
