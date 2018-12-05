@@ -14,30 +14,30 @@ public class AccountBillingService {
 			
 			BillDAO.getInstance().persist(billToCancel);
 
-			List<Allocation> allocations = billToCancel.getAllocations();
+			List<Allocation> allocationsToMove = billToCancel.getAllocations();
 
-			for (Allocation allocation : allocations) {
-				List<Bill> bills = BillDAO.getInstance().findAllByClient(clientId);
-				int amount = allocation.getAmount();
+			for (Allocation allocationToMove : allocationsToMove) {
+				List<Bill> billsOfClient = BillDAO.getInstance().findAllByClient(clientId);
+				int amountToMove = allocationToMove.getAmount();
 
-				for (Bill bill : bills) {
-					if (billToCancel != bill) {
-						int remainingAmount = bill.getRemainingAmount();
+				for (Bill billOfClient : billsOfClient) {
+					if (billToCancel != billOfClient) {
+						int remainingAmount = billOfClient.getRemainingAmount();
 						Allocation newRedistributedAllocation;
-						if (remainingAmount <= amount) {
+						if (remainingAmount <= amountToMove) {
 							newRedistributedAllocation = new Allocation(remainingAmount);
-							amount -= remainingAmount;
+							amountToMove -= remainingAmount;
 						} else {
-							newRedistributedAllocation = new Allocation(amount);
-							amount = 0;
+							newRedistributedAllocation = new Allocation(amountToMove);
+							amountToMove = 0;
 						}
 
-						bill.addAllocation(newRedistributedAllocation);
+						billOfClient.addAllocation(newRedistributedAllocation);
 
-						BillDAO.getInstance().persist(bill);
+						BillDAO.getInstance().persist(billOfClient);
 					}
 
-					if (amount == 0) {
+					if (amountToMove == 0) {
 						break;
 					}
 				}
