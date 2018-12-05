@@ -38,5 +38,21 @@ public class Bill {
 	public int getRemainingAmount() {
 		return total - allocations.stream().mapToInt(Allocation::getAmount).sum();
 	}
+	
+	public int addRedistributeAllocation(int amountToRedistribute) {
+		int remainingAmount = getRemainingAmount();
+		Allocation newRedistributedAllocation;
+		if (remainingAmount <= amountToRedistribute) {
+			newRedistributedAllocation = new Allocation(remainingAmount);
+			amountToRedistribute -= remainingAmount;
+		} else {
+			newRedistributedAllocation = new Allocation(amountToRedistribute);
+			amountToRedistribute = 0;
+		}
+
+		addAllocation(newRedistributedAllocation);
+		return amountToRedistribute;
+	}
+	
 
 }

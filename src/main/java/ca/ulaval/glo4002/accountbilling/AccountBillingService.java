@@ -19,26 +19,11 @@ public class AccountBillingService {
 
 			for (Allocation allocationToMove : allocationsToMove) {
 				List<Bill> billsOfClient = getBillsByClient(clientId);
-				int amountToMove = allocationToMove.getAmount();
+				int amountToRedistribute = allocationToMove.getAmount();
 
-				for (Bill billOfClient : billsOfClient) {
-					if (billToCancel != billOfClient) {
-						int remainingAmount = billOfClient.getRemainingAmount();
-						Allocation newRedistributedAllocation;
-						if (remainingAmount <= amountToMove) {
-							newRedistributedAllocation = new Allocation(remainingAmount);
-							amountToMove -= remainingAmount;
-						} else {
-							newRedistributedAllocation = new Allocation(amountToMove);
-							amountToMove = 0;
-						}
-
-						billOfClient.addAllocation(newRedistributedAllocation);
-
-						persistBill(billOfClient);
-					}
-
-					if (amountToMove == 0) {
+				for (Bill billCandidate : billsOfClient) {
+					amountToRedistribute = redistributeAmount(billToCancel, amountToRedistribute, billCandidate);
+					if (amountToRedistribute == 0) {
 						break;
 					}
 				}
@@ -46,6 +31,15 @@ public class AccountBillingService {
 		} else {
 			throw new BillNotFoundException();
 		}
+	}
+
+	private int redistributeAmount(Bill billToCancel, int amountToRedistribute, Bill billCandidate) {
+		if (billToCancel != billCandidate) {
+			amountToRedistribute = billCandidate.addRedistributeAllocation(amountToRedistribute);
+
+			persistBill(billCandidate);
+		}
+		return amountToRedistribute;
 	}
 
 	protected List<Bill> getBillsByClient(ClientId clientId) {
